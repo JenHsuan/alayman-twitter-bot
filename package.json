@@ -1,0 +1,27 @@
+{
+  "name": "alayman-twitter-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node bot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JenHsuan/alayman-twitter-bot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JenHsuan/alayman-twitter-bot/issues"
+  },
+  "homepage": "https://github.com/JenHsuan/alayman-twitter-bot#readme",
+  "dependencies": {
+    "pg": "^8.4.1",
+    "pg-hstore": "^2.3.3",
+    "sequelize": "^6.3.5",
+    "sequelize-cli": "^6.2.0",
+    "twit": "^2.2.11"
+  }
+}
