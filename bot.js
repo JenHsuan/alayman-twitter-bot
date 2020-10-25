@@ -46,7 +46,7 @@ var T = new Twit(twitterConfig);
 
 
 async function followNewSubScribers(){
-    let res = await T.get('followers/list', { screen_name: 'ALayman-Daily Learning' });
+    let res = await T.get('followers/list', { screen_name: process.env.TWITTER_SCREEN_NAME });
     console.log(res.data)
     if (res.data) {
         await Promise.allSettled(
@@ -59,13 +59,21 @@ async function followNewSubScribers(){
 }
 
 async function sendMessages(){
-    const allPosts = await Post.findAll({
-        order: [
-            ['createdAt', 'DESC']
-        ]
-    });
+    const keywords = JSON.parse(process.env.TWITTER_KEYWORDS);
+    const allPosts = [];
+    await Promise.allSettled(keywords.map(async (keyword) => {
+        let posts = await Post.findAll({
+            where: {
+                query: keyword
+            },
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        });
+        allPosts.push(posts[0]);
+    }));
     const posts = [allPosts[0], allPosts[1], allPosts[2]]
-    const contents = [];
+    const contents = ['Good day! Share daily news with you!\n'];
     let index = 1;
     await Promise.allSettled(posts.map(async post => {
         if (post.dataValues.tweetId) {
@@ -77,7 +85,7 @@ async function sendMessages(){
             index++;
         }
     }));
-
+    contents.push('\nThanks for your subscription! Feel free to visit Daily Learning: https://daily-learning.herokuapp.com/')
     console.log(contents)
     let res = await T.get('followers/list', { screen_name: 'ALayman-Daily Learning' });
     if (res.data) {
@@ -104,31 +112,43 @@ async function sendMessages(){
 async function retweet() {
     const keywords = JSON.parse(process.env.TWITTER_KEYWORDS);
     await Promise.allSettled(keywords.map(async (keyword) => {
+        //Find the last record
+        let posts = await Post.findAll({
+            where: {
+                query: keyword
+            },
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        });
+        
+        //Search from Twitter
         var parameters = {
             q : keyword,
-            result_type: 'recent',
-            lang: 'en'
+            result_type: 'popular',
+            lang: 'en',
+            count: 1
         }
-        const res = await T.get('search/tweets', parameters);
+        if (posts.length !== 0) {
+            parameters.since_id = posts[0].tweetId;
+        }
+        let res = await T.get('search/tweets', parameters);
         const tweets = res.data.statuses; 
-        //console.log(res)
         if (tweets.length > 0){
             const retweetId = tweets[0].id_str;
-            //console.log(retweetId)
-            const query = tweets[0].user.name;
-            const posts = await Post.findAll({
+            let posts = await Post.findAll({
                 where: {
-                    tweetId: retweetId
+                    tweetId: retweetId,
+                    query: keyword
                 }
             });
-            console.log(posts)
-    
             if (posts.length === 0) {
-                T.post('statuses/retweet/:id',{ id : retweetId }, tweeted);
+                let res = T.post('statuses/retweet/:id',{ id : retweetId });
                 const newPost = await Post.create({
                     tweetId: retweetId,
-                    query: query
+                    query: keyword
                 });
+                console.log(newPost);
             }
         }
     }))
